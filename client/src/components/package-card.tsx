@@ -28,7 +28,7 @@ export default function PackageCard({ package: pkg, onInstallationChange }: Pack
         title: "Installation Started",
         description: `${pkg.name} is being installed...`,
       });
-      
+
       // Simulate progress
       const interval = setInterval(() => {
         setInstallProgress(prev => {
@@ -96,11 +96,11 @@ export default function PackageCard({ package: pkg, onInstallationChange }: Pack
           </div>
           {getStatusBadge()}
         </div>
-        
+
         <p className="text-sm text-muted-foreground mb-4" data-testid={`package-description-${pkg.id}`}>
           {pkg.description}
         </p>
-        
+
         <div className="flex items-center justify-between text-xs text-muted-foreground mb-4">
           <span data-testid={`package-size-${pkg.id}`}>Size: {pkg.size}</span>
           <span data-testid={`package-version-${pkg.id}`}>Version: {pkg.version}</span>

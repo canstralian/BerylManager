@@ -1,134 +1,153 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
-import ToggleSwitch from "@/components/toggle-switch";
-import { Settings, Trash2 } from "lucide-react";
-import { apiRequest } from "@/lib/queryClient";
+import { Badge } from "@/components/ui/badge";
+import { Trash2, Loader2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { useIsMobile } from "@/hooks/use-mobile";
+import ToggleSwitch from "./toggle-switch";
+import type { Package } from "@shared/schema";
 
 interface InstalledPackageItemProps {
-  installation: any;
-  onToggle: () => void;
-  onUninstall: () => void;
+  package: Package;
+  isEnabled: boolean;
 }
 
-export default function InstalledPackageItem({ installation, onToggle, onUninstall }: InstalledPackageItemProps) {
+export default function InstalledPackageItem({
+  package: pkg,
+  isEnabled,
+}: InstalledPackageItemProps) {
   const { toast } = useToast();
   const queryClient = useQueryClient();
-
-  const toggleMutation = useMutation({
-    mutationFn: async (enabled: boolean) => {
-      return apiRequest("PATCH", `/api/installations/${installation.packageId}/toggle`, {
-        isEnabled: enabled,
-      });
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/installations"] });
-      onToggle();
-    },
-    onError: () => {
-      toast({
-        title: "Toggle Failed",
-        description: "Failed to toggle service status.",
-        variant: "destructive",
-      });
-    },
-  });
+  const isMobile = useIsMobile();
 
   const uninstallMutation = useMutation({
-    mutationFn: async () => {
-      return apiRequest("DELETE", `/api/packages/${installation.packageId}/uninstall`);
+    mutationFn: async (packageId: string) => {
+      const response = await fetch(`/api/installations/${packageId}`, {
+        method: "DELETE",
+      });
+      if (!response.ok) throw new Error("Failed to uninstall package");
+      return response.json();
     },
     onSuccess: () => {
-      toast({
-        title: "Package Uninstalled",
-        description: `${installation.package?.name} has been uninstalled.`,
-      });
-      queryClient.invalidateQueries({ queryKey: ["/api/packages"] });
       queryClient.invalidateQueries({ queryKey: ["/api/installations"] });
-      onUninstall();
+      toast({
+        title: "Package uninstalled",
+        description: `${pkg.name} has been uninstalled successfully.`,
+      });
     },
     onError: () => {
       toast({
-        title: "Uninstall Failed",
-        description: "Failed to uninstall package.",
+        title: "Uninstallation failed",
+        description: "Failed to uninstall the package. Please try again.",
         variant: "destructive",
       });
     },
   });
 
-  const getIcon = () => {
-    const iconClasses = installation.package?.iconClass || "fas fa-puzzle-piece";
-    if (iconClasses.includes("fa-shield-alt")) return "🛡️";
-    if (iconClasses.includes("fa-chart-bar")) return "📊";
-    return "🧩";
-  };
+  const toggleMutation = useMutation({
+    mutationFn: async ({ packageId, enabled }: { packageId: string; enabled: boolean }) => {
+      const response = await fetch(`/api/installations/${packageId}/toggle`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ enabled }),
+      });
+      if (!response.ok) throw new Error("Failed to toggle package");
+      return response.json();
+    },
+    onSuccess: (_, { enabled }) => {
+      queryClient.invalidateQueries({ queryKey: ["/api/installations"] });
+      toast({
+        title: `Package ${enabled ? "enabled" : "disabled"}`,
+        description: `${pkg.name} has been ${enabled ? "enabled" : "disabled"}.`,
+      });
+    },
+    onError: () => {
+      toast({
+        title: "Toggle failed",
+        description: "Failed to toggle the package. Please try again.",
+        variant: "destructive",
+      });
+    },
+  });
 
-  const handleToggle = (enabled: boolean) => {
-    toggleMutation.mutate(enabled);
-  };
-
-  return (
-    <Card data-testid={`installed-package-${installation.packageId}`}>
-      <CardContent className="p-4">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center space-x-4">
-            <div className="w-10 h-10 bg-accent rounded-lg flex items-center justify-center">
-              <span className="text-accent-foreground text-lg">{getIcon()}</span>
+  if (isMobile) {
+    return (
+      <div className="border rounded-lg p-3 space-y-3">
+        <div className="flex items-start justify-between">
+          <div className="flex-1 min-w-0 space-y-2">
+            <div className="flex flex-col space-y-1">
+              <span className="font-medium text-sm truncate">{pkg.name}</span>
+              <Badge variant="outline" className="text-xs w-fit">
+                {pkg.category}
+              </Badge>
             </div>
-            <div>
-              <h3 className="font-semibold" data-testid={`package-name-${installation.packageId}`}>
-                {installation.package?.name}
-              </h3>
-              <p className="text-sm text-muted-foreground" data-testid={`package-description-${installation.packageId}`}>
-                {installation.package?.description}
-              </p>
-              <div className="flex items-center space-x-4 text-xs text-muted-foreground mt-1">
-                <span data-testid={`package-version-${installation.packageId}`}>
-                  Version: {installation.package?.version}
-                </span>
-                <span data-testid={`package-size-${installation.packageId}`}>
-                  Size: {installation.package?.size}
-                </span>
-                <div className="flex items-center space-x-1">
-                  <span className={`status-dot ${installation.isEnabled ? "status-running" : "status-stopped"}`}></span>
-                  <span data-testid={`service-status-${installation.packageId}`}>
-                    {installation.isEnabled ? "Running" : "Stopped"}
-                  </span>
-                </div>
-              </div>
-            </div>
-          </div>
-          <div className="flex items-center space-x-3">
-            <ToggleSwitch
-              checked={installation.isEnabled}
-              onCheckedChange={handleToggle}
-              disabled={toggleMutation.isPending}
-              data-testid={`toggle-${installation.packageId}`}
-            />
-            <Button
-              variant="outline"
-              size="sm"
-              className="hover:bg-accent transition-colors"
-              data-testid={`button-configure-${installation.packageId}`}
-            >
-              <Settings className="h-4 w-4 mr-1" />
-              Configure
-            </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              className="text-destructive border-destructive hover:bg-destructive hover:text-white transition-colors"
-              onClick={() => uninstallMutation.mutate()}
-              disabled={uninstallMutation.isPending}
-              data-testid={`button-uninstall-${installation.packageId}`}
-            >
-              <Trash2 className="h-4 w-4 mr-1" />
-              Uninstall
-            </Button>
+            <p className="text-xs text-muted-foreground line-clamp-2">{pkg.description}</p>
           </div>
         </div>
-      </CardContent>
-    </Card>
+        <div className="flex items-center justify-between">
+          <div className="flex items-center space-x-3">
+            <ToggleSwitch
+              checked={isEnabled}
+              onCheckedChange={(enabled) =>
+                toggleMutation.mutate({ packageId: pkg.id, enabled })
+              }
+              disabled={toggleMutation.isPending}
+            />
+            <span className="text-xs text-muted-foreground">
+              {isEnabled ? "Enabled" : "Disabled"}
+            </span>
+          </div>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => uninstallMutation.mutate(pkg.id)}
+            disabled={uninstallMutation.isPending}
+            className="text-destructive hover:text-destructive touch-target"
+          >
+            {uninstallMutation.isPending ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : (
+              <Trash2 className="h-4 w-4" />
+            )}
+          </Button>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="flex items-center justify-between p-3 border rounded-lg">
+      <div className="flex items-center space-x-3">
+        <ToggleSwitch
+          checked={isEnabled}
+          onCheckedChange={(enabled) =>
+            toggleMutation.mutate({ packageId: pkg.id, enabled })
+          }
+          disabled={toggleMutation.isPending}
+        />
+        <div className="space-y-1">
+          <div className="flex items-center space-x-2">
+            <span className="font-medium">{pkg.name}</span>
+            <Badge variant="outline" className="text-xs">
+              {pkg.category}
+            </Badge>
+          </div>
+          <p className="text-sm text-muted-foreground">{pkg.description}</p>
+        </div>
+      </div>
+      <Button
+        variant="outline"
+        size="sm"
+        onClick={() => uninstallMutation.mutate(pkg.id)}
+        disabled={uninstallMutation.isPending}
+        className="text-destructive hover:text-destructive"
+      >
+        {uninstallMutation.isPending ? (
+          <Loader2 className="h-4 w-4 animate-spin" />
+        ) : (
+          <Trash2 className="h-4 w-4" />
+        )}
+      </Button>
+    </div>
   );
 }

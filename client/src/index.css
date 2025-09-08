@@ -102,6 +102,34 @@
   body {
     @apply font-sans antialiased bg-background text-foreground;
   }
+
+  /* Mobile-first responsive typography */
+  h1 { @apply text-2xl md:text-3xl lg:text-4xl; }
+  h2 { @apply text-xl md:text-2xl lg:text-3xl; }
+  h3 { @apply text-lg md:text-xl lg:text-2xl; }
+  h4 { @apply text-base md:text-lg lg:text-xl; }
+  
+  /* Mobile-first spacing */
+  .container {
+    @apply px-4 sm:px-6 lg:px-8;
+  }
+}
+
+@layer components {
+  /* Mobile-optimized card component */
+  .mobile-card {
+    @apply bg-card border border-border rounded-lg p-4 sm:p-6;
+  }
+  
+  /* Mobile-friendly button sizes */
+  .btn-mobile {
+    @apply min-h-[44px] px-4 py-2 text-sm sm:text-base;
+  }
+  
+  /* Touch-friendly interactive elements */
+  .touch-target {
+    @apply min-h-[44px] min-w-[44px];
+  }
 }
 
 .status-dot {
