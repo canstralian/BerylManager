@@ -40,3 +40,6 @@ integrations = ["javascript_mem_db==1.0.0"]
 [[ports]]
 localPort = 5000
 externalPort = 80
+
+[objectStorage]
+defaultBucketID = "replit-objstore-b1d1588d-3594-453d-9cac-20485559e7c9"
