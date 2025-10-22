@@ -47,9 +47,9 @@ export async function setupVite(app: Express, server: Server) {
     windowMs: 60 * 1000, // 1 minute
     max: 1000, // limit each IP to 1000 requests per windowMs
   });
-  app.use(limiter);
+  // app.use(limiter);
 
-  app.use("*", async (req, res, next) => {
+  app.use("*", limiter, async (req, res, next) => {
     const url = req.originalUrl;
 
     try {
