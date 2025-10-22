@@ -5,7 +5,7 @@ import { createServer as createViteServer, createLogger } from "vite";
 import { type Server } from "http";
 import viteConfig from "../vite.config";
 import { nanoid } from "nanoid";
-
+import rateLimit from "express-rate-limit";
 const viteLogger = createLogger();
 
 export function log(message: string, source = "express") {
@@ -41,7 +41,15 @@ export async function setupVite(app: Express, server: Server) {
   });
 
   app.use(vite.middlewares);
-  app.use("*", async (req, res, next) => {
+
+  // Apply rate limiting to all client-side requests that use the filesystem
+  const limiter = rateLimit({
+    windowMs: 60 * 1000, // 1 minute
+    max: 1000, // limit each IP to 1000 requests per windowMs
+  });
+  // app.use(limiter);
+
+  app.use("*", limiter, async (req, res, next) => {
     const url = req.originalUrl;
 
     try {
