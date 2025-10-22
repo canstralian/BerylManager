@@ -5,7 +5,7 @@ export interface IStorage {
   // Packages
   getPackages(): Promise<Package[]>;
   getPackage(id: string): Promise<Package | undefined>;
-  createPackage(package: InsertPackage): Promise<Package>;
+  createPackage(pkg: InsertPackage): Promise<Package>;
   updatePackage(id: string, updates: Partial<Package>): Promise<Package | undefined>;
   
   // Installations

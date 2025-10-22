@@ -11,7 +11,7 @@ import { type Package } from "@shared/schema";
 
 interface PackageCardProps {
   package: Package;
-  onInstallationChange: () => void;
+  onInstallationChange?: () => void;
 }
 
 export default function PackageCard({ package: pkg, onInstallationChange }: PackageCardProps) {
@@ -37,7 +37,9 @@ export default function PackageCard({ package: pkg, onInstallationChange }: Pack
             clearInterval(interval);
             queryClient.invalidateQueries({ queryKey: ["/api/packages"] });
             queryClient.invalidateQueries({ queryKey: ["/api/installations"] });
-            onInstallationChange();
+            if (onInstallationChange) {
+              onInstallationChange();
+            }
             toast({
               title: "Installation Complete",
               description: `${pkg.name} has been installed successfully.`,
